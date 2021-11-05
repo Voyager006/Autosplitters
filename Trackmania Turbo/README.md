@@ -4,7 +4,7 @@ Adds support for load removal and autosplitting for Trackmania Turbo on PC (Ubis
 
 ## Features
 
-- Proper IGT calculation, down to thousandths (not displayed)
+- IGT reflects the race time down to thousandths (not displayed)
 - Starts after the countdown on the first map played
 - Splits on map finish
 - Resets when restarting the first map played
@@ -14,7 +14,7 @@ Adds support for load removal and autosplitting for Trackmania Turbo on PC (Ubis
 - In LiveSplit, right-click and go to "Edit Splits..."
 - Click the "Activate" button to download and enable the script
 
-Once activated, individual features can be enabled/disabled in the settings.
+Once activated, start/split/reset functionality can be toggled in the settings.
 
 Then, make sure to compare against "Game Time" in LiveSplit.
 
@@ -22,5 +22,5 @@ Then, make sure to compare against "Game Time" in LiveSplit.
 
 Let me know if there are any problems regarding the script or if you have any feature requests!
 
-- Twitch: https://www.twitch.tv/voyager006
-- TrackMania Speedruns Discord server: https://discord.com/invite/yJ4G4r6
+- [Twitch](https://www.twitch.tv/voyager006)
+- [TrackMania Speedruns Discord server](https://discord.com/invite/yJ4G4r6)
