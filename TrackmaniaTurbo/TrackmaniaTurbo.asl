@@ -1,5 +1,6 @@
 // Trackmania Turbo autosplitter
-// Made by donadigo and Voyager006
+// Made by Voyager006 based on donadigo's TMF autosplitter
+// https://github.com/donadigo/AutoSplitters/blob/master/Trackmania%20Forever.asl
 
 state("TrackmaniaTurbo")
 {
