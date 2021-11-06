@@ -21,7 +21,7 @@ state("TrackmaniaTurbo")
 
 startup
 {
-	// Timer will not reset in case of a game crash
+    // Timer will not reset in case of a game crash
     vars.currentRunTime = 0;
     vars.firstMapName = "";
 }
@@ -39,7 +39,7 @@ start
         && old.time == -1
         && current.time >= 0)
     {
-		vars.currentRunTime = current.time;
+        vars.currentRunTime = current.time;
         return true;
     }
     else
@@ -53,9 +53,9 @@ update
     // IGT is updated according to the current race time
     if (current.currentPlayground != 0 && current.time >= 0)
     {
-		int oldTime = Math.Max(old.time, 0);
-		int newTime = Math.Max(current.time, 0);
-		vars.currentRunTime += newTime - oldTime;
+        int oldTime = Math.Max(old.time, 0);
+        int newTime = Math.Max(current.time, 0);
+        vars.currentRunTime += newTime - oldTime;
     }
 
     return true;
@@ -63,7 +63,7 @@ update
 
 isLoading
 {
-	// Manually supply the IGT value in gameTime
+    // Manually supply the IGT value in gameTime
     return true;
 }
 
@@ -80,7 +80,7 @@ reset
         && old.time == -1
         && current.time >= 0)
     {
-		vars.currentRunTime = current.time;
+        vars.currentRunTime = current.time;
         return true;
     }
     else
@@ -93,9 +93,9 @@ split
 {
     // The autosplitter splits once the player reaches the finish line
 	if (current.currentPlayground != 0
-		&& current.time >= 0
-		&& old.raceState == 1
-		&& current.raceState == 2)
+            && current.time >= 0
+            && old.raceState == 1
+            && current.raceState == 2)
     {
         print("Splitting at " + vars.currentRunTime + " ms");
         return true;
