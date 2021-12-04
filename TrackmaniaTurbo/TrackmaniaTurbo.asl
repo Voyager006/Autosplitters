@@ -30,7 +30,7 @@ startup
 start
 {
     // RTA starts after the countdown on the first map
-    if (!old.command.Contains("init challenge") && current.command.Contains("init challenge"))
+    if (old.command != null && !old.command.Contains("init challenge") && current.command.Contains("init challenge"))
     {
         vars.firstMapName = current.mapName;
     }
@@ -54,8 +54,8 @@ update
     // IGT is updated according to the current race time
     if (current.currentPlayground != 0 && current.time >= 0)
     {
-        int oldTime = Math.Max(old.time, 0);
-        int newTime = Math.Max(current.time, 0);
+        int oldTime = (Math.Max(old.time, 0) / 10) * 10;
+        int newTime = (Math.Max(current.time, 0) / 10) * 10;
         vars.currentRunTime += newTime - oldTime;
     }
 
@@ -76,10 +76,11 @@ gameTime
 reset
 {
     // The autosplitter resets when the player restarts the map that started the speedrun
-    if (current.command.Contains("init challenge")
+    if (current.command != null
+        && current.command.Contains("init challenge")
         && vars.firstMapName == current.mapName
-        && old.time == -1
-        && current.time >= 0)
+        && old.raceState >= 1
+        && current.raceState == 0)
     {
         vars.currentRunTime = current.time;
         return true;
