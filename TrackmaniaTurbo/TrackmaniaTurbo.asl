@@ -22,9 +22,124 @@ state("TrackmaniaTurbo")
 
 startup
 {
-    // Timer will not reset in case of a game crash
+    // Settings
+    string fileSeparator = "_";
+    string headerSeparator = " - ";
+    string tableColSeparator = "   ";
+
+    // State
     vars.currentRunTime = 0;
     vars.firstMapName = "";
+    vars.mapNames = new List<string>();
+    vars.segments = new List<int>();
+
+    // Logging functionality
+    // Times here are calculated as if thousandths were counted
+    Action<string, int> LogSplit = (mapName, segment) =>
+    {
+        vars.mapNames.Add(mapName);
+        vars.segments.Add(segment);
+    };
+    vars.LogSplit = LogSplit;
+
+    EventHandler ResetSplits = (s, e) =>
+    {
+        vars.mapNames = new List<string>();
+        vars.segments = new List<int>();
+    };
+    vars.ResetSplits = ResetSplits;
+    timer.OnStart += vars.ResetSplits;
+
+    Func<int, string> GetTimeFormat = referenceTime =>
+    {
+        if (referenceTime < 10000) return @"s\.fff";
+        if (referenceTime < 60000) return @"ss\.fff";
+        if (referenceTime < 600000) return @"m\:ss\.fff";
+        if (referenceTime < 3600000) return @"mm\:ss\.fff";
+        if (referenceTime < 36000000) return @"H\:mm\:ss\.fff";
+        return @"HH\:mm\:ss\.fff";
+    };
+
+    Func<int, string, string> FormatTime = (time, format) => TimeSpan.FromMilliseconds(time).ToString(format);
+
+    Func<string, string> GetCategory = separator =>
+    {
+        return String.Join(separator, timer.Run.CategoryName, String.Join(separator, timer.Run.Metadata.VariableValueNames.Values));
+    };
+
+    Func<string> GenerateResultsTable = () =>
+    {
+        string mapColHeader = "Name";
+        string segmentColHeader = "Duration";
+        string sumColHeader = "Finished at";
+
+        List<string> mapNames = vars.mapNames;
+        List<int> segments = vars.segments;
+
+        int mapColWidth = Math.Max(mapColHeader.Length, mapNames.Select(x => x.Length).Max());
+
+        int largestSegment = segments.Max();
+        string segmentTimeFormat = GetTimeFormat(largestSegment);
+        int segmentColWidth = Math.Max(segmentColHeader.Length, FormatTime(largestSegment, segmentTimeFormat).Length);
+
+        int largestSum = segments.Sum();
+        string sumTimeFormat = GetTimeFormat(largestSum);
+        int sumColWidth = Math.Max(sumColHeader.Length, FormatTime(largestSum, sumTimeFormat).Length);
+
+        StringBuilder table = new StringBuilder();
+        Func<string, int, string> Pad = (text, length) => String.Format("{0,-" + length + "}", text);
+        Action<string, string, string> PrintRow = (mapName, segment, sum) =>
+        {
+            table.AppendLine(String.Join(tableColSeparator, Pad(mapName, mapColWidth), Pad(segment, segmentColWidth), Pad(sum, sumColWidth)));
+        };
+
+        table.AppendLine(String.Join(headerSeparator, "Trackmania Turbo", GetCategory(headerSeparator)));
+        table.AppendLine();
+        PrintRow(mapColHeader, segmentColHeader, sumColHeader);
+        table.Append('-', mapColWidth + segmentColWidth + sumColWidth + 2 * tableColSeparator.Length);
+        table.AppendLine();
+        for (int i = 0; i < segments.Count; i++)
+        {
+            string mapName = mapNames[i];
+            string segment = FormatTime(segments[i], segmentTimeFormat);
+            string sum = FormatTime(segments.GetRange(0, i + 1).Sum(), sumTimeFormat);
+            PrintRow(mapName, segment, sum);
+        }
+        return table.ToString();
+    };
+
+    Action<string, string> SaveFile = (content, path) =>
+    {
+        string directoryName = Path.GetDirectoryName(path);
+        if (!Directory.Exists(directoryName))
+        {
+            Directory.CreateDirectory(directoryName);
+        }
+        File.AppendAllText(path, content);
+    };
+
+    EventHandler ExportSplitsToLogFile = (s, e) =>
+    {
+        if (timer.CurrentPhase == TimerPhase.Ended)
+        {
+            List<int> segments = vars.segments;
+            string resultsTable = GenerateResultsTable();
+            int totalTime = segments.Sum();
+            string totalTimeFormat = GetTimeFormat(totalTime).Replace(':', '.');
+            long unixTimestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
+            string filename = String.Join(fileSeparator, GetCategory(fileSeparator), unixTimestamp, FormatTime(totalTime, totalTimeFormat) + ".log");
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "TrackmaniaTurboTimes", filename);
+            SaveFile(resultsTable, path);
+        }
+    };
+    vars.ExportSplitsToLogFile = ExportSplitsToLogFile;
+    timer.OnSplit += vars.ExportSplitsToLogFile;
+}
+
+shutdown
+{
+    timer.OnStart -= vars.ResetSplits;
+    timer.OnSplit -= vars.ExportSplitsToLogFile;
 }
 
 start
@@ -35,7 +150,7 @@ start
         vars.firstMapName = current.mapName;
     }
     
-    if (current.command.Contains("init challenge")
+    if (current.currentPlayground != 0
         && vars.firstMapName == current.mapName
         && old.time == -1
         && current.time >= 0)
@@ -51,12 +166,17 @@ start
 
 update
 {
-    // IGT is updated according to the current race time
+    // IGT is updated according to the current race time, rounded down to the nearest .XX
     if (current.currentPlayground != 0 && current.time >= 0)
     {
         int oldTime = (Math.Max(old.time, 0) / 10) * 10;
         int newTime = (Math.Max(current.time, 0) / 10) * 10;
         vars.currentRunTime += newTime - oldTime;
+    }
+
+    if (old.raceState == 1 && current.raceState == 0)
+    {
+        vars.LogSplit(current.mapName + " (Reset)", old.time);
     }
 
     return true;
@@ -95,13 +215,15 @@ split
 {
     // The autosplitter splits once the player reaches the finish line
 	if (current.currentPlayground != 0
-            && current.time >= 0
-            && old.raceState == 1
-            && current.raceState == 2)
+        && current.time >= 0
+        && old.raceState == 1
+        && current.raceState == 2)
     {
-        print("Splitting at " + vars.currentRunTime + " ms");
+        vars.LogSplit(current.mapName, current.time);
         return true;
     }
-
-    return false;
+    else
+    {
+        return false;
+    }
 }
