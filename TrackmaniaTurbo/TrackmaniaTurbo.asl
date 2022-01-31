@@ -18,11 +18,21 @@ state("TrackmaniaTurbo")
 
     // Current race time in milliseconds. If there is no race underway, but a map is loaded, its value is -1.
     int time : "TrackmaniaTurbo.exe", 0x181B818, 0x14, 0x1CC;
+
+    // The number of checkpoints crossed during the current race.
+    int checkpoints : "TrackmaniaTurbo.exe", 0x181B818, 0x14, 0x1DC;
+
+    // The current lap time in milliseconds.
+    int curLapTime : "TrackmaniaTurbo.exe", 0x1819750, 0x37C, 0x3C0, 0x0;
 }
 
 startup
 {
     // Settings
+	settings.Add("SplitOnCp", false, "Split on each checkpoint");
+	settings.Add("SplitOnLap", false, "Split on each lap");
+
+    // Variables for log export
     string fileSeparator = "_";
     string headerSeparator = " - ";
     string tableColSeparator = "   ";
@@ -118,6 +128,18 @@ startup
         File.AppendAllText(path, content);
     };
 
+    Func<string> GetBase36TimeString = () =>
+    {
+        string base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        long minutesDateTime = (long)(DateTime.Now - new DateTime(2016, 03, 24)).TotalMinutes;
+        string base36DateTime = "";
+        while(minutesDateTime > 0) {
+            base36DateTime = base36Chars[(int)(minutesDateTime % 36)] + base36DateTime;
+            minutesDateTime /= 36;
+        }
+        return base36DateTime;
+    };
+
     EventHandler ExportSplitsToLogFile = (s, e) =>
     {
         if (timer.CurrentPhase == TimerPhase.Ended)
@@ -126,8 +148,7 @@ startup
             string resultsTable = GenerateResultsTable();
             int totalTime = segments.Sum();
             string totalTimeFormat = GetTimeFormat(totalTime).Replace(':', '.');
-            long unixTimestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
-            string filename = String.Join(fileSeparator, GetCategory(fileSeparator), unixTimestamp, FormatTime(totalTime, totalTimeFormat) + ".log");
+            string filename = String.Join(fileSeparator, GetCategory(fileSeparator), GetBase36TimeString(), FormatTime(totalTime, totalTimeFormat) + ".log");
             string path = Path.Combine(Directory.GetCurrentDirectory(), "TrackmaniaTurboTimes", filename);
             SaveFile(resultsTable, path);
         }
@@ -155,6 +176,7 @@ start
         && old.time == -1
         && current.time >= 0)
     {
+        print("[Autosplitter] start");
         vars.currentRunTime = current.time;
         return true;
     }
@@ -174,8 +196,10 @@ update
         vars.currentRunTime += newTime - oldTime;
     }
 
-    if (old.raceState == 1 && current.raceState == 0)
+    // Log reset if player restarts the current run
+    if (old.raceState == 1 && old.time >= 0 && current.time == -1)
     {
+        print("[Autosplitter] reset : " + old.time);
         vars.LogSplit(current.mapName + " (Reset)", old.time);
     }
 
@@ -202,6 +226,7 @@ reset
         && old.raceState >= 1
         && current.raceState == 0)
     {
+        print("[Autosplitter] reset");
         vars.currentRunTime = current.time;
         return true;
     }
@@ -213,14 +238,25 @@ reset
 
 split
 {
-    // The autosplitter splits once the player reaches the finish line
 	if (current.currentPlayground != 0
         && current.time >= 0
         && old.raceState == 1
         && current.raceState == 2)
     {
+        // Split on map finish
+        print("[Autosplitter] split : " + current.time);
         vars.LogSplit(current.mapName, current.time);
         return true;
+    }
+    else if (current.time >= 0 && current.curLapTime < old.curLapTime)
+    {
+        // Split on lap
+        return settings["SplitOnLap"];
+    }
+    else if (current.checkpoints > old.checkpoints)
+    {
+        // Split on checkpoint
+        return settings["SplitOnCp"];
     }
     else
     {
