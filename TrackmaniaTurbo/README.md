@@ -20,7 +20,7 @@ Then, make sure to compare against "Game Time" in LiveSplit.
 
 ## Contact
 
-Let me know if there are any problems regarding the script or if you have any feature requests!
+Let me know if you have any problems regarding the script or if you have any feature requests!
 
 - [Twitch](https://www.twitch.tv/voyager006)
 - [TrackMania Speedruns Discord server](https://discord.com/invite/yJ4G4r6)
