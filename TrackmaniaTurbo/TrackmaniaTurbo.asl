@@ -62,12 +62,12 @@ startup
 
     Func<int, string> GetTimeFormat = referenceTime =>
     {
-        if (referenceTime < 10000) return @"s\.fff";
-        if (referenceTime < 60000) return @"ss\.fff";
-        if (referenceTime < 600000) return @"m\:ss\.fff";
-        if (referenceTime < 3600000) return @"mm\:ss\.fff";
-        if (referenceTime < 36000000) return @"H\:mm\:ss\.fff";
-        return @"HH\:mm\:ss\.fff";
+        if (referenceTime < 10000) return @"s\.ff";
+        if (referenceTime < 60000) return @"ss\.ff";
+        if (referenceTime < 600000) return @"m\:ss\.ff";
+        if (referenceTime < 3600000) return @"mm\:ss\.ff";
+        if (referenceTime < 36000000) return @"H\:mm\:ss\.ff";
+        return @"HH\:mm\:ss\.ff";
     };
 
     Func<int, string, string> FormatTime = (time, format) => TimeSpan.FromMilliseconds(time).ToString(format);
@@ -244,8 +244,9 @@ split
         && current.raceState == 2)
     {
         // Split on map finish
-        print("[Autosplitter] split : " + current.time);
-        vars.LogSplit(current.mapName, current.time);
+        int time = (Math.Max(current.time, 0) / 10) * 10;
+        print("[Autosplitter] split : " + time);
+        vars.LogSplit(current.mapName, time);
         return true;
     }
     else if (current.time >= 0 && current.curLapTime < old.curLapTime)
