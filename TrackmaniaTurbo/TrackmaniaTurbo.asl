@@ -24,6 +24,9 @@ state("TrackmaniaTurbo")
 
     // The current lap time in milliseconds.
     int curLapTime : "TrackmaniaTurbo.exe", 0x1819750, 0x37C, 0x3C0, 0x0;
+	
+    // The current author time.
+    int curTrackMaster : "TrackmaniaTurbo.exe", 0x17DB820, 496, 444, 24;
 }
 
 startup
@@ -31,6 +34,7 @@ startup
     // Settings
 	settings.Add("SplitOnCp", false, "Split on each checkpoint");
 	settings.Add("SplitOnLap", false, "Split on each lap");
+	settings.Add("SplitOnTM", false, "Split on TrackMaster");
 
     // Variables for log export
     string fileSeparator = "_";
@@ -247,7 +251,12 @@ split
         int time = (Math.Max(current.time, 0) / 10) * 10;
         print("[Autosplitter] split : " + time);
         vars.LogSplit(current.mapName, time);
+		if (settings["SplitOnTM"])
+			return time<=current.curTrackMaster;
+		else
+		{
         return true;
+		}
     }
     else if (current.time >= 0 && current.curLapTime < old.curLapTime)
     {
